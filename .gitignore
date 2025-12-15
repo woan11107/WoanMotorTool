@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+log/
+.vscode/
+*.log
+快速指南.pdf
