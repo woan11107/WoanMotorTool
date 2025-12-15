@@ -68,7 +68,7 @@ def load_config():
                 # print(f"已加载配置: {CONFIG_FILE}")
                 return config
         except Exception as e:
-            print(f"警告: 配置文件加载失败 ({e})，使用默认配置")
+            print(f"\033[93m警告: 配置文件加载失败 ({e})，使用默认配置\033[0m")
     
     # 根据操作系统调整默认端口
     if platform.system() == "Windows":
@@ -85,7 +85,7 @@ def save_config(config):
         # print(f"配置已保存到: {CONFIG_FILE}")
         return True
     except Exception as e:
-        print(f"错误: 配置文件保存失败 ({e})")
+        print(f"\033[91m错误: 配置文件保存失败 ({e})\033[0m")
         return False
 
 
@@ -123,7 +123,7 @@ def scan_menu(config):
             status = "正常" if master_id >= 0 else "Master ID读取失败"
             print(f"   0x{motor_id:02x}    |  0x{master_id:02x}     | {position:7.3f} rad | {status}")
     else:
-        print("\n未检测到任何电机")
+        print("\n\033[93m未检测到任何电机\033[0m")
     
     input("\n按Enter键继续...")
 
@@ -140,7 +140,7 @@ def read_id_menu(config):
     try:
         motor_id = int(motor_id_str, 0)
     except ValueError:
-        print("错误: ID格式无效")
+        print("\033[91m[X] ID格式无效\033[0m")
         return
     
     # print(f"\n使用串口: {config['port']}")
@@ -162,7 +162,7 @@ def set_id_menu(config):
     try:
         current_id = int(current_id_str, 0)
     except ValueError:
-        print("错误: ID格式无效")
+        print("\033[91m[X] ID格式无效\033[0m")
         return
     
     print("\n新的电机配置:")
@@ -177,7 +177,7 @@ def set_id_menu(config):
         # 自动计算 Master ID: 十六进制下高位加1
         new_master_id = 0x10 + new_motor_id
     except ValueError:
-        print("错误: ID格式无效")
+        print("\033[91m[X] ID格式无效\033[0m")
         return
     
     print(f"\n将设置: Motor ID = 0x{new_motor_id:02x}, Master ID = 0x{new_master_id:02x}")
@@ -210,7 +210,7 @@ def set_zero_menu(config):
     try:
         motor_id = int(motor_id_str, 0)
     except ValueError:
-        print("错误: ID格式无效")
+        print("\033[91m[X] ID格式无效\033[0m")
         return
     
     # print(f"\n使用串口: {config['port']}")
@@ -219,7 +219,7 @@ def set_zero_menu(config):
     if success:
         print("\n\033[92m[OK] 零点设置成功！\033[0m")
     else:
-        print("\n[X] 零点设置失败")
+        print("\n\033[91m[X] 零点设置失败\033[0m")
     
     input("\n按Enter键继续...")
 
@@ -233,12 +233,12 @@ def set_zero_all_menu(config):
     motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'])
     
     if motors is None:
-        print("\n扫描失败: 串口连接错误")
+        print("\n\033[91m[X] 串口连接错误\033[0m")
         input("\n按Enter键继续...")
         return
     
     if not motors:
-        print("\n未检测到任何电机")
+        print("\n\033[93m未检测到任何电机\033[0m")
         input("\n按Enter键继续...")
         return
     
@@ -257,7 +257,7 @@ def set_zero_all_menu(config):
     if success:
         print("\n\033[92m[OK] 所有电机零点设置成功！\033[0m")
     else:
-        print("\n[X] 零点设置失败")
+        print("\n\033[91m[X] 零点设置失败\033[0m")
     
     input("\n按Enter键继续...")
 
@@ -297,7 +297,7 @@ def config_menu(config, show_return=True):
                 if is_connected:
                     break
                 else:
-                    print("\n提示: 请先配置一个有效的串口")
+                    print("\n\033[93m提示: 请先配置一个有效的串口\033[0m")
         elif choice == '1':
             new_port = input(f"请输入新的串口端口 (当前: {config['port']}): ").strip()
             if new_port:
@@ -313,7 +313,7 @@ def config_menu(config, show_return=True):
                     print(f"\033[92m[OK] 串口设置成功: {new_port}，自动返回主菜单\033[0m")
                     break
                 else:
-                    confirm = input(f"警告: {msg}\n仍要设置此串口? (y/n): ").strip().lower()
+                    confirm = input(f"\033[93m警告: {msg}\n仍要设置此串口? (y/n): \033[0m").strip().lower()
                     if confirm == 'y':
                         config['port'] = new_port
                         save_config(config)
@@ -339,9 +339,9 @@ def config_menu(config, show_return=True):
                             print(f"\033[92m[OK] 已连接串口: {config['port']}，自动返回主菜单...\033[0m")
                             break
                 else:
-                    print("  未检测到已连接的串口")
+                    print("\033[91m[X] 未检测到已连接的串口\033[0m")
             else:
-                print("未检测到可用的串口")
+                print("\033[93m未检测到可用的串口\033[0m")
         elif choice == '3':
             print("\n正在检测串口连接...")
             is_connected, status_msg = check_port_connection(config['port'], config['baudrate'])
@@ -398,7 +398,7 @@ def main():
         elif choice == '5':
             set_zero_all_menu(config)
         else:
-            print("错误: 无效的选择，请重新输入")
+            print("\033[91m[X] 无效的选择，请重新输入\033[0m")
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ def set_motor_id(current_canid, new_motor_id=None, new_master_id=None, port='/de
     try:
         controller = MotorController(port=port, baudrate=baudrate)
     except Exception as e:
-        print(f"\033[91m错误: 无法打开串口 {port}\033[0m")
+        print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return False
     
     controller.add_motor(motor)
@@ -38,7 +38,7 @@ def set_motor_id(current_canid, new_motor_id=None, new_master_id=None, port='/de
     current_master_id = controller.read_master_id(motor)
 
     if current_master_id < 0:
-        print(f"错误: 无法读取电机 ID {current_canid} 的 Master ID")
+        print(f"\033[91m[X] 无法读取电机 ID {current_canid} 的 Master ID\033[0m")
         controller.close()
         return False
 

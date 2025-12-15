@@ -26,7 +26,7 @@ def set_zero_position(motor_id, port='/dev/ttyACM1', baudrate=921600):
     try:
         controller = MotorController(port=port, baudrate=baudrate)
     except Exception as e:
-        print(f"\033[91m错误: 无法打开串口 {port}\033[0m")
+        print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return False
     
     controller.add_motor(motor)
@@ -34,7 +34,7 @@ def set_zero_position(motor_id, port='/dev/ttyACM1', baudrate=921600):
     current_master_id = controller.read_master_id(motor)
 
     if current_master_id < 0:
-        print(f"错误: 无法读取电机 ID {motor_id} 的 Master ID")
+        print(f"\033[91m[X] 无法读取电机 ID {motor_id} 的 Master ID\033[0m")
         controller.close()
         return False
 

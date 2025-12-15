@@ -24,7 +24,7 @@ def scan_motors(port='/dev/ttyACM1', baudrate=921600, max_id=16):
     try:
         controller = MotorController(port=port, baudrate=baudrate)
     except Exception as e:
-        print(f"\033[91m错误: 无法打开串口 {port}\033[0m")
+        print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return None
     
     print(f"\n开始扫描电机，请等待...")
@@ -68,7 +68,7 @@ def scan_motors(port='/dev/ttyACM1', baudrate=921600, max_id=16):
                         'master_id': -1,
                         'position': temp_motor.get_position()
                     }
-                    print(f"电机 ID: {motor_id:2d} | Master ID: 读取失败")
+                    print(f"\033[91m[X] 电机 ID: {motor_id:2d} | Master ID: 读取失败\033[0m")
             
             # 从控制器中移除，避免累积
             controller.motors.pop(motor_id, None)

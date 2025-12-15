@@ -24,7 +24,7 @@ def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600):
     try:
         controller = MotorController(port=port, baudrate=baudrate)
     except Exception as e:
-        print(f"\033[91m错误: 无法打开串口 {port}\033[0m")
+        print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return False
     
     motors = []
