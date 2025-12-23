@@ -1,0 +1,43 @@
+name: Build Motor Tool
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies & build
+        run: |
+          chmod +x build_motor_tool.sh
+          ./build_motor_tool.sh
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: motor_tool-linux
+          path: dist/motor_tool
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies & build
+        run: |
+          build_motor_tool.bat
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: motor_tool-windows
+          path: dist/motor_tool.exe

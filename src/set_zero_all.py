@@ -45,8 +45,8 @@ def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600):
     print("等待零点设置...")
     current_positions = {}
     for motor in motors:
-        controller.enable_motor(motor)
-        time.sleep(0.1)
+        # controller.enable_motor(motor)
+        # time.sleep(0.1)
         controller.refresh_status(motor)
         time.sleep(0.05)
         current_positions[motor.motor_id] = motor.get_position()
@@ -57,9 +57,9 @@ def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600):
         time.sleep(0.2)
     
     # 4. 禁用电机
-    for motor in motors:
-        controller.disable_motor(motor)
-        time.sleep(0.1)
+    # for motor in motors:
+    #     controller.disable_motor(motor)
+    #     time.sleep(0.1)
     
     # 5. 验证新位置
     new_positions = {}

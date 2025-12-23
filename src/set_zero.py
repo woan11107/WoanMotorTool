@@ -40,16 +40,16 @@ def set_zero_position(motor_id, port='/dev/ttyACM1', baudrate=921600):
 
     print(f"CAN ID: 0x{motor.motor_id:02x}, Master ID: 0x{current_master_id:02x}")
 
-    controller.enable_motor(motor)
-    time.sleep(0.5)
+    # controller.enable_motor(motor)
+    # time.sleep(0.5)
     controller.refresh_status(motor)
     time.sleep(0.1)
     print(f"当前位置: {motor.get_position():.3f} rad")
     
     controller.set_zero_position(motor)
     time.sleep(0.5)
-    controller.disable_motor(motor)
-    time.sleep(0.5)
+    # controller.disable_motor(motor)
+    # time.sleep(0.5)
     
     controller.refresh_status(motor)
     time.sleep(0.1)

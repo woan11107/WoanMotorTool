@@ -33,7 +33,7 @@ def set_motor_id(current_canid, new_motor_id=None, new_master_id=None, port='/de
     
     controller.add_motor(motor)
 
-    controller.disable_motor(motor)
+    # controller.disable_motor(motor)
 
     current_master_id = controller.read_master_id(motor)
 
