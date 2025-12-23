@@ -2,7 +2,7 @@ name: Build Motor Tool
 
 on:
   push:
-    branches: [ main, master]
+    branches: [ main, master ]
   pull_request:
     branches: [ main ]
 
@@ -10,9 +10,9 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4  # 推荐升级到 v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # 推荐升级到 v5
         with:
           python-version: '3.10'
       - name: Install dependencies & build
@@ -20,7 +20,7 @@ jobs:
           chmod +x build_motor_tool.sh
           ./build_motor_tool.sh
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # 必须升级到 v4
         with:
           name: motor_tool-linux
           path: dist/motor_tool
@@ -28,16 +28,16 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4  # 推荐升级到 v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # 推荐升级到 v5
         with:
           python-version: '3.10'
       - name: Install dependencies & build
         run: |
-          build_motor_tool.bat
+          .\build_motor_tool.bat 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # 必须升级到 v4
         with:
           name: motor_tool-windows
           path: dist/motor_tool.exe
