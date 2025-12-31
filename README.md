@@ -99,7 +99,7 @@ sudo usermod -a -G dialout $USER
 - 扫描逻辑会基于 `MotorController.refresh_status()` 与 `read_master_id()` 来判断设备存在性并获取 Master ID。
 
 ## 版本信息
-- 版本: v1.1
+- 版本: v1.2
 - 更新日期: 2025-12-15
 
 ---

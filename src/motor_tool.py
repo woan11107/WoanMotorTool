@@ -92,7 +92,7 @@ def save_config(config):
 def show_menu():
     """显示主菜单"""
     print("\n" + "="*60)
-    print("           电机调试工具 v1.1")
+    print("           电机调试工具 v1.2")
     print("="*60)
     print("1. 查看/修改串口配置")
     print("2. 扫描电机")

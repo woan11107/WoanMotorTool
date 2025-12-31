@@ -10,6 +10,7 @@ import enum
 import math
 import struct
 import numpy as np # 引入numpy处理字节数组更方便，或者直接用list/bytearray
+from slcan_protocol import *
 
 class MotorType(enum.Enum):
     A4310 = 0
@@ -143,31 +144,56 @@ class Motor:
             self.tau = self.uint_to_float(tau, -self.tau_max, self.tau_max, 12)
 
 class MotorController:
-    # 达妙串口转CAN协议的固定帧头模板
-    SEND_TEMPLATE = bytearray([
-        0x55, 0xAA, 0x1e, 0x03, 0x01, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 
-        0x00, 0x00, # Index 13-14: CAN ID (L, H)
-        0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # Index 21-28: Data
-        0x00
-    ])
+    def __init__(self,
+                 port: str = "/dev/ttyACM0",
+                 baudrate: int = 921600,
+                 slcan_type: str = "damiao"):
+        """
+        :param port: 串口设备
+        :param baudrate: 串口波特率
+        :param slcan_type: 'canable' | 'damiao'
+        """
 
-    def __init__(self, port='/dev/ttyACM1', baudrate=921600):
-        try:
-            self.serial = serial.Serial(
-                port=port,
-                baudrate=baudrate,
-                timeout=0.01,
-                write_timeout=0.01
-            )
-            # print(f"Opened serial port: {port}")
-        except serial.SerialException as e:
-            # 不打印错误信息，直接抛出异常让上层处理
-            raise  # 抛出异常而不是退出程序
+        # --------------------------------------------------
+        # 1. 打开串口（与协议无关）
+        # --------------------------------------------------
+        self.serial = serial.Serial(
+            port=port,
+            baudrate=baudrate,
+            timeout=0.01,
+            write_timeout=0.01
+        )
 
+        # --------------------------------------------------
+        # 2. 创建 SLCAN 协议对象（关键）
+        # --------------------------------------------------
+        if slcan_type == "canable":
+            self.slcan = CanableSlcan(self.serial)
+
+        elif slcan_type == "damiao":
+            self.slcan = DamiaoSlcan(self.serial)
+
+        else:
+            raise ValueError(f"Unknown slcan_type: {slcan_type}")
+
+        # --------------------------------------------------
+        # 3. 初始化 CAN 设备
+        # --------------------------------------------------
+        self.slcan.init()
+
+        # --------------------------------------------------
+        # 4. 初始化业务状态（你原来就有的）
+        # --------------------------------------------------
         self.motors = {}
         self.running = True
-        self.recv_thread = threading.Thread(target=self.__recv_thread, daemon=True)
+
+        # --------------------------------------------------
+        # 5. 启动接收线程（线程逻辑不变）
+        # --------------------------------------------------
+        self.recv_thread = threading.Thread(
+            target=self.__recv_thread,
+            daemon=True
+        )
         self.recv_thread.start()
 
     def add_motor(self, motor):
@@ -178,76 +204,59 @@ class MotorController:
         if gripper.gripper_id not in self.motors:
             self.motors[gripper.gripper_id] = gripper
 
-    # ---------------------------------------------------------------------
-    # 核心修改就在这里：接收线程
-    # ---------------------------------------------------------------------
     def __recv_thread(self):
-        buffer = bytearray()
-        header = 0xAA
-        tail = 0x55
-        frame_len = 16
-        
-        # print("DEBUG: Receive thread started (Fixed Routing).")
-        
+        """
+        接收线程（协议无关）
+        """
+    # print("DEBUG: Receive thread started (Unified Mode).")
+
         while self.running:
             try:
-                if self.serial.in_waiting:
-                    buffer.extend(self.serial.read(self.serial.in_waiting))
-                
-                while len(buffer) >= frame_len:
-                    if buffer[0] == header and buffer[frame_len-1] == tail:
-                        packet = buffer[:frame_len]
-                        can_id = packet[3] | (packet[4] << 8)
-                        payload = packet[7:15]
-                        
-                        # --- 修复后的路由逻辑 ---
-                        
-                        # 1. 尝试直接匹配 CAN ID (针对标准帧或未设置Master的情况)
-                        if can_id in self.motors:
-                            self.motors[can_id].parse_msg(payload)
-                        
-                        else:
-                            # 2. 如果 CAN ID 不匹配 (例如 Master ID 17)，说明是转发帧
-                            # 此时我们需要从 Payload 中提取真实的 Slave ID
-                            
-                            # 提取 Byte 0 的低 4 位作为 ID
-                            # 解释：
-                            # - 对于参数回复：Byte 0 就是 ID (如果ID<16)
-                            # - 对于状态反馈：Byte 0 是 Status(高4位) | ID(低4位)
-                            # 所以 & 0x0F 对两种情况都适用 (前提是 ID <= 15)
-                            possible_id = payload[0] & 0x0F
-                            
-                            if possible_id in self.motors:
-                                self.motors[possible_id].parse_msg(payload)
-                            # else:
-                                # (可选) 如果你用了 ID > 15 的电机，这里可以加额外的判断
-                                # slave_id_extended = payload[0] | (payload[1] << 8)
-                                # if slave_id_extended in self.motors: ...
-                                
-                                # 调试信息
-                                # print(f"DEBUG: Drop packet - CAN ID: {can_id}, Payload[0]: {hex(payload[0])}, Target: {possible_id}")
+                # ---------------------------------------------
+                # 1. 从协议层接收一帧
+                # ---------------------------------------------
+                ret = self.slcan.recv()
 
-                        del buffer[:frame_len]
-                    else:
-                        del buffer[0]
-                
-                time.sleep(0.001)
+                if ret is None:
+                    # 没有完整帧，稍微让出 CPU
+                    time.sleep(0.001)
+                    continue
+
+                can_id, payload = ret
+
+                # ---------------------------------------------
+                # 2. 业务层路由逻辑（完全保留）
+                # ---------------------------------------------
+
+                # 2.1 直接按 CAN ID 匹配
+                if can_id in self.motors:
+                    self.motors[can_id].parse_msg(payload)
+                    continue
+
+                # 2.2 尝试从 payload 中提取 slave id
+                if payload:
+                    possible_id = payload[0] & 0x0F
+                    if possible_id in self.motors:
+                        self.motors[possible_id].parse_msg(payload)
+                        continue
+
+                # 2.3 未匹配（可选调试）
+                # print(f"[RX] Unhandled frame: CAN_ID={can_id}, DATA={payload.hex()}")
+
             except Exception as e:
-                print(f"Serial receive error: {e}")
-                time.sleep(0.1)
+                print(f"[RX] Serial receive error: {e}")
+                time.sleep(0.05)
 
-    def __send_message(self, frame_id, data) -> bool:
-        frame = bytearray(self.SEND_TEMPLATE)
-        frame[13] = frame_id & 0xFF
-        frame[14] = (frame_id >> 8) & 0xFF
-        data_len = len(data)
-        if data_len > 8: data_len = 8
-        frame[21:21+data_len] = data[:data_len]
+    def __send_message(self, frame_id: int, data: bytes) -> bool:
+        """
+        发送 CAN 帧（协议无关）
+        """
         try:
-            self.serial.write(frame)
-            return True
-        except serial.SerialException:
+            return self.slcan.send(frame_id, data)
+        except Exception as e:
+            print(f"[TX] Send error: {e}")
             return False
+
 
     def close(self):
         self.running = False
