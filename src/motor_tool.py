@@ -92,7 +92,7 @@ def save_config(config):
 def show_menu():
     """显示主菜单"""
     print("\n" + "="*60)
-    print("           电机调试工具 v1.2")
+    print("           电机调试工具 v1.3.0")
     print("="*60)
     print("1. 查看/修改串口配置")
     print("2. 扫描电机")
@@ -131,9 +131,9 @@ def scan_menu(config):
 def read_id_menu(config):
     """读取电机ID菜单"""
     print("\n--- 读取电机ID和Master ID ---")
-    motor_id_str = input("请输入电机ID (1~9): ").strip()
+    motor_id_str = input("请输入电机ID (1~9，输入'c'取消): ").strip().lower()
     
-    if not motor_id_str:
+    if not motor_id_str or motor_id_str == 'c':
         print("已取消")
         return
     
@@ -153,9 +153,9 @@ def set_id_menu(config):
     """设置电机ID菜单"""
     print("\n--- 设置电机ID和Master ID ---")
     print("当前电机ID:")
-    current_id_str = input("  请输入当前电机ID (1~9): ").strip()
+    current_id_str = input("  请输入当前电机ID (1~9，输入'c'取消): ").strip().lower()
     
-    if not current_id_str:
+    if not current_id_str or current_id_str == 'c':
         print("已取消")
         return
     
@@ -166,9 +166,9 @@ def set_id_menu(config):
         return
     
     print("\n新的电机配置:")
-    new_motor_id_str = input("  请输入新的电机ID (十进制或0x十六进制): ").strip()
+    new_motor_id_str = input("  请输入新的电机ID (十进制或0x十六进制，输入'c'取消): ").strip().lower()
     
-    if not new_motor_id_str:
+    if not new_motor_id_str or new_motor_id_str == 'c':
         print("已取消")
         return
     
@@ -201,9 +201,9 @@ def set_id_menu(config):
 def set_zero_menu(config):
     """设置单个电机零点菜单"""
     print("\n--- 设置单个电机零点 ---")
-    motor_id_str = input("请输入电机ID (1~9): ").strip()
+    motor_id_str = input("请输入电机ID (1~9，输入'c'取消): ").strip().lower()
     
-    if not motor_id_str:
+    if not motor_id_str or motor_id_str == 'c':
         print("已取消")
         return
     
@@ -299,8 +299,8 @@ def config_menu(config, show_return=True):
                 else:
                     print("\n\033[93m提示: 请先配置一个有效的串口\033[0m")
         elif choice == '1':
-            new_port = input(f"请输入新的串口端口 (当前: {config['port']}): ").strip()
-            if new_port:
+            new_port = input(f"请输入新的串口端口 (当前: {config['port']}，输入'c'取消): ").strip()
+            if new_port and new_port.lower() != 'c':
                 # Windows端口自动转换为大写
                 if platform.system() == "Windows" and new_port.lower().startswith("com"):
                     new_port = new_port.upper()
@@ -330,8 +330,10 @@ def config_menu(config, show_return=True):
                         print(f"  \033[92m{len(connected_ports)}. {device} - {description}\033[0m")
                 
                 if connected_ports:
-                    select = input("\n输入序号选择串口 (直接回车跳过): ").strip()
-                    if select and select.isdigit():
+                    select = input("\n输入序号选择串口 (直接回车跳过，输入'c'取消): ").strip()
+                    if select and select.lower() == 'c':
+                        print("已取消")
+                    elif select and select.isdigit():
                         idx = int(select) - 1
                         if 0 <= idx < len(connected_ports):
                             config['port'] = connected_ports[idx][0]
