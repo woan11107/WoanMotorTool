@@ -147,7 +147,7 @@ class MotorController:
     def __init__(self,
                  port: str = "/dev/ttyACM0",
                  baudrate: int = 921600,
-                 slcan_type: str = "damiao"):
+                 slcan_type: str = "canable"):
         """
         :param port: 串口设备
         :param baudrate: 串口波特率
