@@ -34,6 +34,9 @@ DEFAULT_CONFIG = {
     "max_scan_id": 16
 }
 
+# SLCAN 协议类型（由入口脚本在导入后覆写）
+SLCAN_TYPE = "canable"
+
 
 def check_port_connection(port, baudrate=921600):
     """检测串口是否可以连接"""
@@ -92,7 +95,7 @@ def save_config(config):
 def show_menu():
     """显示主菜单"""
     print("\n" + "="*60)
-    print("           电机调试工具 v1.3.0")
+    print(f"           电机调试工具 v1.3.0  [{SLCAN_TYPE.upper()}]")
     print("="*60)
     print("1. 查看/修改串口配置")
     print("2. 扫描电机")
@@ -108,7 +111,7 @@ def scan_menu(config):
     """扫描电机菜单"""
     # print("\n--- 扫描电机 ---")
     # print(f"\n使用串口: {config['port']}")
-    motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'])
+    motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'], slcan_type=SLCAN_TYPE)
     
     if motors is None:
         pass  # 错误信息已在 scan_motors 中显示
@@ -144,7 +147,7 @@ def read_id_menu(config):
         return
     
     # print(f"\n使用串口: {config['port']}")
-    set_motor_id(motor_id, None, None, port=config['port'], baudrate=config['baudrate'])
+    set_motor_id(motor_id, None, None, port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
     
     input("\n按Enter键继续...")
 
@@ -188,7 +191,7 @@ def set_id_menu(config):
     
     # print(f"\n使用串口: {config['port']}")
     success = set_motor_id(current_id, new_motor_id, new_master_id, 
-                          port=config['port'], baudrate=config['baudrate'])
+                          port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
     
     if success:
         print("\n\033[92m[OK] 设置成功！参数已永久保存到电机Flash\033[0m")
@@ -214,7 +217,7 @@ def set_zero_menu(config):
         return
     
     # print(f"\n使用串口: {config['port']}")
-    success = set_zero_position(motor_id, port=config['port'], baudrate=config['baudrate'])
+    success = set_zero_position(motor_id, port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
     
     if success:
         print("\n\033[92m[OK] 零点设置成功！\033[0m")
@@ -230,7 +233,7 @@ def set_zero_all_menu(config):
     # print("正在扫描已连接的电机...")
     
     # 扫描所有已连接的电机
-    motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'])
+    motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'], slcan_type=SLCAN_TYPE)
     
     if motors is None:
         print("\n\033[91m[X] 串口连接错误\033[0m")
@@ -252,7 +255,7 @@ def set_zero_all_menu(config):
         return
     
     # print(f"\n使用串口: {config['port']}")
-    success = set_zero_all_motors(motor_ids, port=config['port'], baudrate=config['baudrate'])
+    success = set_zero_all_motors(motor_ids, port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
     
     if success:
         print("\n\033[92m[OK] 所有电机零点设置成功！\033[0m")

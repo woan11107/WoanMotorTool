@@ -4,40 +4,53 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu
+            os: ubuntu-latest
+            ext: ''
+          - platform: windows
+            os: windows-latest
+            ext: '.exe'
+
     steps:
-      - uses: actions/checkout@v4  # 推荐升级到 v4
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v5 # 推荐升级到 v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install dependencies & build
+
+      - name: Build Ubuntu binaries
+        if: runner.os == 'Linux'
         run: |
           chmod +x build_motor_tool.sh
           ./build_motor_tool.sh
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4 # 必须升级到 v4
-        with:
-          name: motor_tool-linux
-          path: dist/motor_tool
 
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4  # 推荐升级到 v4
-      - name: Set up Python
-        uses: actions/setup-python@v5 # 推荐升级到 v5
-        with:
-          python-version: '3.10'
-      - name: Install dependencies & build
+      - name: Build Windows binaries
+        if: runner.os == 'Windows'
+        shell: cmd
         run: |
-          .\build_motor_tool.bat 
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4 # 必须升级到 v4
+          .\build_motor_tool.bat
+
+      - name: Upload CANable artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: motor_tool-windows
-          path: dist/motor_tool.exe
+          name: motor_tool-canable-${{ matrix.platform }}
+          path: dist/motor_tool_canable${{ matrix.ext }}
+          if-no-files-found: error
+
+      - name: Upload Damiao artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: motor_tool-damiao-${{ matrix.platform }}
+          path: dist/motor_tool_damiao${{ matrix.ext }}
+          if-no-files-found: error

@@ -9,7 +9,7 @@ from interface import MotorController, Motor
 # 初始化 colorama
 colorama.init()
 
-def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600):
+def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600, slcan_type='canable'):
     """
     设置多个电机的零点位置
     
@@ -17,12 +17,13 @@ def set_zero_all_motors(motor_ids, port='/dev/ttyACM1', baudrate=921600):
         motor_ids: 电机ID列表
         port: 串口路径
         baudrate: 波特率
+        slcan_type: SLCAN协议类型 ('canable' | 'damiao')
     
     Returns:
         bool: 成功返回True，失败返回False
     """
     try:
-        controller = MotorController(port=port, baudrate=baudrate)
+        controller = MotorController(port=port, baudrate=baudrate, slcan_type=slcan_type)
     except Exception as e:
         print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return False

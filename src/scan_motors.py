@@ -9,7 +9,7 @@ from interface import MotorController, Motor, MotorType
 # 初始化 colorama 以支持 Windows 终端颜色
 colorama.init()
 
-def scan_motors(port='/dev/ttyACM1', baudrate=921600, max_id=16):
+def scan_motors(port='/dev/ttyACM1', baudrate=921600, max_id=16, slcan_type='canable'):
     """
     扫描指定范围内的所有电机ID，查询它们的master ID
     
@@ -17,12 +17,13 @@ def scan_motors(port='/dev/ttyACM1', baudrate=921600, max_id=16):
         port: 串口设备路径
         baudrate: 波特率
         max_id: 扫描的最大ID (默认16，可根据实际情况调整)
+        slcan_type: SLCAN协议类型 ('canable' | 'damiao')
     
     Returns:
         dict: {motor_id: {'master_id': int, 'position': float}} 的字典，如果串口打开失败返回None
     """
     try:
-        controller = MotorController(port=port, baudrate=baudrate)
+        controller = MotorController(port=port, baudrate=baudrate, slcan_type=slcan_type)
     except Exception as e:
         print(f"\033[91m[X] 无法打开串口 {port}\033[0m")
         return None
