@@ -15,7 +15,7 @@ jobs:
       matrix:
         include:
           - platform: ubuntu
-            os: ubuntu-latest
+            os: ubuntu-22.04
             ext: ''
           - platform: windows
             os: windows-latest
