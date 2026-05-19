@@ -10,3 +10,5 @@ log/
 color_test.py
 .omc/
 .codex/
+.claude/
+docs/

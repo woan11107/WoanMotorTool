@@ -43,10 +43,21 @@ python3 src/motor_tool.py
 python src/motor_tool.py
 ```
 
+启动时会根据当前串口的 USB 描述自动识别 SLCAN 协议类型(CANable / Damiao):
+- 命中 CANable 特征(VID `0x16d0` / PID `0x117e`,或 product 字符串包含 `CANable`)→ 走 SLCAN ASCII 协议
+- 否则按达妙私有二进制协议处理
+
+如需跳过自动识别,可显式指定:
+```bash
+python3 src/motor_tool.py --type canable   # 强制按 CANable 协议
+python3 src/motor_tool.py --type damiao    # 强制按 Damiao 协议
+```
+
 ## 脚本说明与用法
 工具主要脚本位于 `src/` 下：
 
 - `src/motor_tool.py`：集成的交互式主程序，包含串口配置、扫描、设置ID、设置零点、其他配置等菜单。
+- `src/port_detect.py`：根据串口 USB 描述自动识别 SLCAN 协议类型(CANable / Damiao),供主程序启动期与切换串口时调用。
 - `src/scan_motors.py`：扫描指定 ID 范围内的电机并读取 Master ID。
 - `src/set_id.py`：读取或设置单个电机的 CAN ID / Master ID。
 - `src/set_zero.py`：设置单个电机的零点。

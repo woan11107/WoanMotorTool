@@ -9,6 +9,7 @@
 import sys
 import os
 import json
+import argparse
 import platform
 import time
 from pathlib import Path
@@ -25,6 +26,7 @@ from set_id import set_motor_id
 from set_zero import set_zero_position
 from set_zero_all import set_zero_all_motors
 from interface import MotorController, Motor
+from port_detect import detect_slcan_type, pick_default_port
 
 # 配置文件路径
 CONFIG_FILE = "motor_config.json"
@@ -36,8 +38,15 @@ DEFAULT_CONFIG = {
     "max_scan_id": 16
 }
 
-# SLCAN 协议类型（由入口脚本在导入后覆写）
+# SLCAN 协议类型（启动期由 _resolve_slcan_type 定型,改 port 后由 _refresh_slcan_type 刷新）
 SLCAN_TYPE = "canable"
+
+
+def _refresh_slcan_type(port: str):
+    """端口变化后刷新模块级 SLCAN_TYPE。命中 CANable 切 canable;否则切 damiao(端口不存在时也兜底为 damiao)。"""
+    global SLCAN_TYPE
+    detected = detect_slcan_type(port)
+    SLCAN_TYPE = detected if detected is not None else "damiao"
 
 
 def check_port_connection(port, baudrate=921600):
@@ -557,13 +566,15 @@ def config_menu(config, show_return=True):
                 if is_valid:
                     config['port'] = new_port
                     save_config(config)
-                    print(f"\033[92m[OK] 串口设置成功: {new_port}，自动返回主菜单\033[0m")
+                    _refresh_slcan_type(new_port)
+                    print(f"\033[92m[OK] 串口设置成功: {new_port} [{SLCAN_TYPE.upper()}]，自动返回主菜单\033[0m")
                     break
                 else:
                     confirm = input(f"\033[93m警告: {msg}\n仍要设置此串口? (y/n): \033[0m").strip().lower()
                     if confirm == 'y':
                         config['port'] = new_port
                         save_config(config)
+                        _refresh_slcan_type(new_port)
         elif choice == '2':
             available_ports = get_available_ports()
             if available_ports:
@@ -585,7 +596,8 @@ def config_menu(config, show_return=True):
                         if 0 <= idx < len(connected_ports):
                             config['port'] = connected_ports[idx][0]
                             save_config(config)
-                            print(f"\033[92m[OK] 已连接串口: {config['port']}，自动返回主菜单...\033[0m")
+                            _refresh_slcan_type(config['port'])
+                            print(f"\033[92m[OK] 已连接串口: {config['port']} [{SLCAN_TYPE.upper()}]，自动返回主菜单...\033[0m")
                             break
                 else:
                     print("\033[91m[X] 未检测到已连接的串口\033[0m")
@@ -607,23 +619,62 @@ def config_menu(config, show_return=True):
                 if platform.system() == "Windows":
                     config["port"] = "COM3"
                 save_config(config)
+                _refresh_slcan_type(config['port'])
                 print("已重置为默认配置")
+
+
+def _resolve_startup_slcan_type(config, cli_type):
+    """
+    启动期定型 SLCAN_TYPE。
+
+    - cli_type 显式指定 -> 直接采用,跳过自动识别
+    - 否则按 config['port'] 探测;探测不到端口时扫全部串口,优先 CANable
+    - 全部失败 -> 保留默认值 "canable",后续走原有"端口连不上"提示流程
+    """
+    global SLCAN_TYPE
+
+    if cli_type is not None:
+        SLCAN_TYPE = cli_type
+        return
+
+    detected = detect_slcan_type(config['port'])
+    if detected is not None:
+        SLCAN_TYPE = detected
+        return
+
+    picked = pick_default_port()
+    if picked is not None:
+        device, slcan_type = picked
+        config['port'] = device
+        SLCAN_TYPE = slcan_type
+        return
+
+    # 全空,保持默认 "canable"
 
 
 def main():
     """主函数"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(
+        description="电机调试工具 - 自动识别 CANable / Damiao,可用 --type 强制指定"
+    )
+    parser.add_argument(
+        "--type",
+        choices=("canable", "damiao"),
+        default=None,
+        help="强制指定 SLCAN 协议类型,跳过自动识别",
+    )
+    args = parser.parse_args()
+
     # 加载配置
     config = load_config()
-    
-    # 显示系统信息
-    # print(f"操作系统: {platform.system()}")
-    # print(f"默认串口: {config['port']}")
-    
+
+    # 启动期定型 SLCAN_TYPE
+    _resolve_startup_slcan_type(config, args.type)
+
     # 检查启动时串口连接状态
     is_connected, status_msg = check_port_connection(config['port'], config['baudrate'])
     if not is_connected:
-        # print(f"\n警告: 串口未连接 - {status_msg}")
-        # print("进入串口配置菜单...\n")
         config_menu(config, show_return=False)
     
     # 主循环

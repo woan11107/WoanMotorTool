@@ -1,10 +1,9 @@
 @echo off
 REM Motor Tool Build Script - Windows
-REM Builds two versions: motor_tool_canable.exe and motor_tool_damiao.exe
+REM Builds a single motor_tool.exe (auto-detects CANable / Damiao, --type to force)
 
 echo ================================
 echo   Motor Tool Build Script
-echo   Dual Version Build
 echo ================================
 
 REM Check if Python is installed
@@ -28,55 +27,31 @@ echo.
 echo Installing PyInstaller...
 pip install pyinstaller
 
-set BUILD_FAILED=0
-
-REM Build CANable version
+REM Build motor_tool
 echo.
-echo Building motor_tool_canable...
+echo Building motor_tool...
 pyinstaller --onefile ^
-    --name motor_tool_canable ^
+    --name motor_tool ^
     --console ^
     --clean ^
     --paths src ^
-    src\motor_tool_canable.py
+    src\motor_tool.py
 
 if %errorlevel% neq 0 (
-    echo motor_tool_canable build failed. Please check the error messages.
-    set BUILD_FAILED=1
-)
-
-REM Build Damiao version
-echo.
-echo Building motor_tool_damiao...
-pyinstaller --onefile ^
-    --name motor_tool_damiao ^
-    --console ^
-    --clean ^
-    --paths src ^
-    src\motor_tool_damiao.py
-
-if %errorlevel% neq 0 (
-    echo motor_tool_damiao build failed. Please check the error messages.
-    set BUILD_FAILED=1
-)
-
-if "%BUILD_FAILED%"=="0" (
-    echo.
-    echo ================================
-    echo   Build Successful!
-    echo ================================
-    echo Executable locations:
-    echo   CANable: .\dist\motor_tool_canable.exe
-    echo   Damiao : .\dist\motor_tool_damiao.exe
-    echo.
-    echo Usage:
-    echo   .\dist\motor_tool_canable.exe
-    echo   .\dist\motor_tool_damiao.exe
-) else (
-    echo.
-    echo One or more builds failed. Please check the error messages.
+    echo motor_tool build failed. Please check the error messages.
     if not defined CI pause
     exit /b 1
 )
+
+echo.
+echo ================================
+echo   Build Successful!
+echo ================================
+echo Executable: .\dist\motor_tool.exe
+echo.
+echo Usage:
+echo   .\dist\motor_tool.exe                  REM auto-detect CANable / Damiao
+echo   .\dist\motor_tool.exe --type canable   REM force CANable protocol
+echo   .\dist\motor_tool.exe --type damiao    REM force Damiao protocol
 
 if not defined CI pause
