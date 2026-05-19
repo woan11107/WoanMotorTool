@@ -1,0 +1,14 @@
+.gitignore
+  h_c9d7340f891f95 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "9bc0cd3a41ede659ac4f4a52239b38fe034cb304",
+  "prompts": {},
+  "humans": {
+    "h_c9d7340f891f95": {
+      "author": "huxiaozhe <huxiaozhe@onero.com>"
+    }
+  }
+}
