@@ -1,0 +1,46 @@
+build_motor_tool.bat
+  s_ce40ca54016b04::t_cd17e403d04764 3,30,32,34,38,41,46-55
+快速指南.md
+  s_ce40ca54016b04::t_23c6920e166269 28,30-32,34-35,37-44,61
+  s_ce40ca54016b04::t_2a7d63334c09dc 205
+src/motor_tool.py
+  s_ce40ca54016b04::t_6cd64177840181 569-570,577
+  s_ce40ca54016b04::t_301cdb193d0238 622
+  s_ce40ca54016b04::t_ed3d9294749c04 599-600
+  s_ce40ca54016b04::t_8846035eb7bfeb 626-654,657-668,671-674
+  s_ce40ca54016b04::t_0b156e9f111754 12,29,41,45-49
+build_motor_tool.sh
+  s_ce40ca54016b04::t_f85ff37b09cf22 3,6,29,32,34,38,41-42,49-58
+README.md
+  s_ce40ca54016b04::t_2b6b3f838b707c 60
+  s_ce40ca54016b04::t_40f44a47e6517e 46-55
+.gitignore
+  h_c9d7340f891f95 13
+  s_ce40ca54016b04::t_782d011423acb8 14
+.github/workflows/build.yml
+  s_ce40ca54016b04::t_1fe017f9c72b0d 44,47-48
+src/port_detect.py
+  s_ce40ca54016b04::t_e4e4a8c9288a03 48-52,74,77,80,82
+  s_ce40ca54016b04::t_f836c8267ed0f0 5-10,13-47,53-73,75-76,78-79,81,83-90,92-95,97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "2950569d0db6efdff6d7c5af2bfbd7c16282ba85",
+  "prompts": {},
+  "humans": {
+    "h_c9d7340f891f95": {
+      "author": "huxiaozhe <huxiaozhe@onero.com>"
+    }
+  },
+  "sessions": {
+    "s_ce40ca54016b04": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19189cc4-fb50-47d9-b404-56bddabf7eb0",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "huxiaozhe <huxiaozhe@onero.com>"
+    }
+  }
+}
