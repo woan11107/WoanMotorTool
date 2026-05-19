@@ -402,6 +402,37 @@ class MotorController:
         motor.params.pop(param_id, None)
         return self.__write_param(motor.motor_id, param_id, canid)
 
+    def read_current_loop_bandwidth(self, motor) -> float:
+        param_id = 24
+        motor.params.pop(param_id, None)
+        if not self.__read_param(motor.motor_id, param_id): return -1.0
+
+        for i in range(50):
+            if param_id in motor.params:
+                return float(motor.params[param_id])
+            time.sleep(0.02)
+        return -1.0
+
+    def set_current_loop_bandwidth(self, motor, bandwidth) -> bool:
+        param_id = 24
+        bandwidth = float(bandwidth)
+        bandwidth = max(1000, min(10000, bandwidth))
+        motor.params.pop(param_id, None)
+
+        if not self.__write_param(motor.motor_id, param_id, bandwidth):
+            return False
+
+        for i in range(50):
+            if param_id not in motor.params:
+                if i % 10 == 0: self.__read_param(motor.motor_id, param_id)
+                time.sleep(0.02)
+                continue
+            if abs(float(motor.params[param_id]) - bandwidth) < 0.001:
+                motor.params.pop(param_id, None)
+                return True
+            break
+        return False
+
     def save_motor_param(self, motor) -> bool:
         """
         保存所有电机参数到Flash（永久保存）
