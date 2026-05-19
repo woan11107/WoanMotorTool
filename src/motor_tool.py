@@ -10,6 +10,7 @@ import sys
 import os
 import json
 import platform
+import time
 from pathlib import Path
 import serial
 import serial.tools.list_ports
@@ -23,6 +24,7 @@ from scan_motors import scan_motors
 from set_id import set_motor_id
 from set_zero import set_zero_position
 from set_zero_all import set_zero_all_motors
+from interface import MotorController, Motor
 
 # 配置文件路径
 CONFIG_FILE = "motor_config.json"
@@ -103,6 +105,7 @@ def show_menu():
     print("3. 设置电机ID和Master ID")
     print("4. 设置单个电机零点")
     print("5. 设置全部已连接电机零点")
+    print("6. 其他配置")
     print("0. 退出")
     print("="*60)
 
@@ -265,6 +268,247 @@ def set_zero_all_menu(config):
     input("\n按Enter键继续...")
 
 
+def _open_motor_controller(config, motor_id):
+    motor = Motor(motor_id=motor_id, master_id=0)
+
+    try:
+        controller = MotorController(port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
+    except Exception as e:
+        print(f"\033[91m[X] 无法打开串口 {config['port']}\033[0m")
+        return None, None
+
+    controller.add_motor(motor)
+    current_master_id = controller.read_master_id(motor)
+    if current_master_id < 0:
+        print(f"\033[91m[X] 无法读取电机 ID {motor_id} 的 Master ID\033[0m")
+        controller.close()
+        return None, None
+
+    print(f"CAN ID: 0x{motor.motor_id:02x}, Master ID: 0x{current_master_id:02x}")
+    return controller, motor
+
+
+def _scan_motors_for_config(config):
+    motors = scan_motors(port=config['port'], baudrate=config['baudrate'], max_id=config['max_scan_id'], slcan_type=SLCAN_TYPE)
+
+    if motors is None:
+        print("\n\033[91m[X] 串口连接错误\033[0m")
+        return None
+
+    if not motors:
+        print("\n\033[93m未检测到任何电机\033[0m")
+        return {}
+
+    return motors
+
+
+def _open_motor_controller_for_motors(config, motor_infos):
+    try:
+        controller = MotorController(port=config['port'], baudrate=config['baudrate'], slcan_type=SLCAN_TYPE)
+    except Exception as e:
+        print(f"\033[91m[X] 无法打开串口 {config['port']}\033[0m")
+        return None, []
+
+    motors = []
+    for motor_id, motor_info in sorted(motor_infos.items()):
+        motor = Motor(motor_id=motor_id, master_id=motor_info.get('master_id', 0))
+        controller.add_motor(motor)
+        motors.append(motor)
+
+    return controller, motors
+
+
+def _input_current_loop_bandwidth():
+    bandwidth_str = input("请输入电流环带宽 (1000~10000，输入'c'取消): ").strip().lower()
+    if not bandwidth_str or bandwidth_str == 'c':
+        print("已取消")
+        return None, None
+
+    try:
+        bandwidth = float(bandwidth_str)
+    except ValueError:
+        print("\033[91m[X] 带宽格式无效\033[0m")
+        return None, None
+
+    clamped_bandwidth = max(1000, min(10000, bandwidth))
+    if clamped_bandwidth != bandwidth:
+        print(f"\033[93m提示: 输入值已限幅为 {_format_current_loop_bandwidth(clamped_bandwidth)}\033[0m")
+
+    return bandwidth, clamped_bandwidth
+
+
+def _format_current_loop_bandwidth(bandwidth):
+    bandwidth = float(bandwidth)
+    if bandwidth.is_integer():
+        return str(int(bandwidth))
+    return f"{bandwidth:.3f}".rstrip('0').rstrip('.')
+
+
+def read_all_current_loop_bandwidth_menu(config):
+    """读取所有电机电流环带宽"""
+    print("\n--- 读取所有电机电流环带宽 ---")
+
+    motor_infos = _scan_motors_for_config(config)
+    if motor_infos is None or not motor_infos:
+        input("\n按Enter键继续...")
+        return
+
+    print(f"\n检测到 {len(motor_infos)} 个电机: {sorted(motor_infos.keys())}")
+
+    controller, motors = _open_motor_controller_for_motors(config, motor_infos)
+    if controller is None:
+        input("\n按Enter键继续...")
+        return
+
+    try:
+        print("\n电机电流环带宽:")
+        print("  Motor ID | 电流环带宽 | 状态")
+        print(" " + "-" * 36)
+        for motor in motors:
+            bandwidth = controller.read_current_loop_bandwidth(motor)
+            if bandwidth < 0:
+                print(f"   0x{motor.motor_id:02x}    |     --     | 读取失败")
+            else:
+                print(f"   0x{motor.motor_id:02x}    | {_format_current_loop_bandwidth(bandwidth):>10} | 正常")
+    finally:
+        controller.close()
+
+    input("\n按Enter键继续...")
+
+
+def set_current_loop_bandwidth_menu(config):
+    """设置电机电流环带宽"""
+    print("\n--- 设置电机电流环带宽 ---")
+    motor_id_str = input("请输入电机ID (1~9，输入'c'取消): ").strip().lower()
+
+    if not motor_id_str or motor_id_str == 'c':
+        print("已取消")
+        return
+
+    try:
+        motor_id = int(motor_id_str, 0)
+    except ValueError:
+        print("\033[91m[X] ID格式无效\033[0m")
+        return
+
+    bandwidth, clamped_bandwidth = _input_current_loop_bandwidth()
+    if bandwidth is None:
+        return
+
+    bandwidth_text = _format_current_loop_bandwidth(clamped_bandwidth)
+    confirm = input(f"\n确认将电机 0x{motor_id:02x} 的电流环带宽设置为 {bandwidth_text}? (y/n): ").strip().lower()
+    if confirm != 'y':
+        print("已取消")
+        return
+
+    controller, motor = _open_motor_controller(config, motor_id)
+    if controller is None:
+        return
+
+    try:
+        success = controller.set_current_loop_bandwidth(motor, bandwidth)
+        if success:
+            print(f"\n\033[92m[OK] 电流环带宽已设置为 {bandwidth_text}\033[0m")
+            save_confirm = input("是否保存到 Flash（断电保留）? (y/Enter保存, n跳过): ").strip().lower()
+            if not save_confirm or save_confirm == 'y':
+                print("正在保存参数到 Flash...")
+                if controller.save_motor_param(motor):
+                    time.sleep(0.5)
+                    print("\033[92m[OK] 参数已保存到 Flash\033[0m")
+                else:
+                    print("\033[91m[X] 参数保存失败\033[0m")
+        else:
+            print("\n\033[91m[X] 电流环带宽设置失败\033[0m")
+    finally:
+        controller.close()
+
+    input("\n按Enter键继续...")
+
+
+def set_all_current_loop_bandwidth_menu(config):
+    """设置所有电机电流环带宽"""
+    print("\n--- 设置所有电机电流环带宽 ---")
+
+    motor_infos = _scan_motors_for_config(config)
+    if motor_infos is None or not motor_infos:
+        input("\n按Enter键继续...")
+        return
+
+    motor_ids = sorted(motor_infos.keys())
+    print(f"\n检测到 {len(motor_ids)} 个电机: {motor_ids}")
+
+    bandwidth, clamped_bandwidth = _input_current_loop_bandwidth()
+    if bandwidth is None:
+        input("\n按Enter键继续...")
+        return
+
+    bandwidth_text = _format_current_loop_bandwidth(clamped_bandwidth)
+    confirm = input(f"\n确认将所有检测到的电机电流环带宽设置为 {bandwidth_text}? (y/n): ").strip().lower()
+    if confirm != 'y':
+        print("已取消")
+        input("\n按Enter键继续...")
+        return
+
+    controller, motors = _open_motor_controller_for_motors(config, motor_infos)
+    if controller is None:
+        input("\n按Enter键继续...")
+        return
+
+    results = []
+    try:
+        print("\n正在设置电流环带宽...")
+        for motor in motors:
+            success = controller.set_current_loop_bandwidth(motor, bandwidth)
+            results.append((motor, success))
+
+        print("\n设置结果:")
+        print("  Motor ID | 目标带宽 | 状态")
+        print(" " + "-" * 34)
+        for motor, success in results:
+            status = "成功" if success else "失败"
+            print(f"   0x{motor.motor_id:02x}    | {bandwidth_text:>8} | {status}")
+
+        if any(success for _, success in results):
+            save_confirm = input("\n是否将成功设置的电机保存到 Flash（断电保留）? (y/Enter保存, n跳过): ").strip().lower()
+            if not save_confirm or save_confirm == 'y':
+                print("正在保存参数到 Flash...")
+                for motor, success in results:
+                    if not success:
+                        continue
+                    if controller.save_motor_param(motor):
+                        time.sleep(0.5)
+                        print(f"\033[92m[OK] 电机 0x{motor.motor_id:02x} 参数已保存到 Flash\033[0m")
+                    else:
+                        print(f"\033[91m[X] 电机 0x{motor.motor_id:02x} 参数保存失败\033[0m")
+    finally:
+        controller.close()
+
+    input("\n按Enter键继续...")
+
+
+def other_config_menu(config):
+    """其他配置菜单"""
+    while True:
+        print("\n--- 其他配置 ---")
+        print("1. 读取所有电机电流环带宽")
+        print("2. 设置单个电机电流环带宽")
+        print("3. 设置所有电机电流环带宽")
+        print("0. 返回主菜单")
+
+        choice = input("\n请选择功能 (0-3): ").strip()
+
+        if choice == '0':
+            break
+        elif choice == '1':
+            read_all_current_loop_bandwidth_menu(config)
+        elif choice == '2':
+            set_current_loop_bandwidth_menu(config)
+        elif choice == '3':
+            set_all_current_loop_bandwidth_menu(config)
+        else:
+            print("\033[91m[X] 无效的选择，请重新输入\033[0m")
+
+
 def config_menu(config, show_return=True):
     """配置菜单"""
     while True:
@@ -402,6 +646,8 @@ def main():
             set_zero_menu(config)
         elif choice == '5':
             set_zero_all_menu(config)
+        elif choice == '6':
+            other_config_menu(config)
         else:
             print("\033[91m[X] 无效的选择，请重新输入\033[0m")
 

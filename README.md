@@ -1,12 +1,13 @@
 # 电机调试工具 使用说明
 
 ## 简介
-本仓库提供一个用于达妙（或兼容协议）电机调试的命令行工具集合，功能包括：扫描电机、读取/设置电机 CAN ID 和 Master ID、设置单个或批量零点、以及串口配置管理。工具以 `src/` 目录下的 Python 脚本为主。
+本仓库提供一个用于达妙（或兼容协议）电机调试的命令行工具集合，功能包括：扫描电机、读取/设置电机 CAN ID 和 Master ID、设置单个或批量零点、读取/设置电流环带宽，以及串口配置管理。工具以 `src/` 目录下的 Python 脚本为主。
 
 ## 主要特性
 - 扫描总线上的电机并读取 Master ID
 - 修改电机 CAN ID 与 Master ID（写入后保存到电机 Flash）
 - 设置单个或多个电机的零点
+- 读取所有电机电流环带宽，并支持单个或批量设置电流环带宽（RID 24，小端 float，设置值限幅 1000~10000）
 - 串口配置持久化（`motor_config.json`）
 - 支持 Linux 和 Windows（默认串口在 Windows 下为 `COM3`）
 
@@ -45,7 +46,7 @@ python src/motor_tool.py
 ## 脚本说明与用法
 工具主要脚本位于 `src/` 下：
 
-- `src/motor_tool.py`：集成的交互式主程序，包含串口配置、扫描、设置ID、设置零点等菜单。
+- `src/motor_tool.py`：集成的交互式主程序，包含串口配置、扫描、设置ID、设置零点、其他配置等菜单。
 - `src/scan_motors.py`：扫描指定 ID 范围内的电机并读取 Master ID。
 - `src/set_id.py`：读取或设置单个电机的 CAN ID / Master ID。
 - `src/set_zero.py`：设置单个电机的零点。

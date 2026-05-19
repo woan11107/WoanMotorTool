@@ -8,3 +8,5 @@ log/
 *.log
 快速指南.pdf
 color_test.py
+.omc/
+.codex/
